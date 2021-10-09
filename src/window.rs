@@ -1,6 +1,7 @@
-use crate::win32::*;
 use std::mem::size_of_val;
-use std::ptr::{null_mut};
+use std::ptr::null_mut;
+
+use crate::win32::*;
 
 #[allow(non_snake_case)]
 unsafe extern "system" fn window_message_callback(hWnd: HWND, uMsg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT {
@@ -14,7 +15,7 @@ unsafe extern "system" fn window_message_callback(hWnd: HWND, uMsg: UINT, wParam
             WM_CLOSE | WM_DESTROY => {
                 data.should_close = true;
                 0
-            },
+            }
             _ => DefWindowProcA(hWnd, uMsg, wParam, lParam),
         }
     }
@@ -36,6 +37,7 @@ struct WindowData {
 pub struct Window {
     instance: HINSTANCE,
     window_handle: HWND,
+    device_context: HDC,
     data: Box<WindowData>,
 }
 
@@ -47,6 +49,7 @@ impl Window {
             let mut window = Window {
                 instance: GetModuleHandleA(null_mut()),
                 window_handle: null_mut(),
+                device_context: null_mut(),
                 data: Box::new(WindowData::default()),
             };
 
@@ -54,6 +57,7 @@ impl Window {
                 let mut window_class = WNDCLASSEXA::default();
 
                 window_class.cbSize = size_of_val(&window_class) as UINT;
+                window_class.style = CS_OWNDC;
                 window_class.hInstance = window.instance;
                 window_class.lpfnWndProc = Some(window_message_callback);
                 window_class.lpszClassName = WINDOW_CLASS_NAME.as_ptr();
@@ -96,6 +100,11 @@ impl Window {
                 return Err(format!("Failed to create window with code: {}", GetLastError()).to_string());
             }
 
+            window.device_context = GetDC(window.window_handle);
+            if window.device_context.is_null() {
+                return Err(format!("Failed get window device context with code: {}", GetLastError()).to_string());
+            }
+
             WINDOW_COUNT += 1;
             Ok(window)
         }
@@ -121,6 +130,20 @@ impl Window {
 
     pub fn should_close(&self) -> bool {
         self.data.should_close
+    }
+}
+
+impl Window {
+    pub unsafe fn get_instance(&self) -> HINSTANCE {
+        self.instance
+    }
+
+    pub unsafe fn get_window_handle(&self) -> HWND {
+        self.window_handle
+    }
+
+    pub unsafe fn get_device_context(&self) -> HDC {
+        self.device_context
     }
 }
 

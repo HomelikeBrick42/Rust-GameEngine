@@ -14,6 +14,7 @@ pub type WORD = u16;
 pub type BOOL = i32;
 pub type DWORD = u32;
 pub type LONG = i32;
+pub type BYTE = i8;
 
 pub type HICON = HANDLE;
 pub type HINSTANCE = HANDLE;
@@ -22,10 +23,13 @@ pub type HBRUSH = HANDLE;
 pub type HMODULE = HANDLE;
 pub type HMENU = HANDLE;
 pub type HWND = HANDLE;
+pub type HDC = HANDLE;
 pub type WPARAM = UINT_PTR;
 pub type LPARAM = LONG_PTR;
 pub type LRESULT = LONG_PTR;
 pub type ATOM = WORD;
+
+pub const CS_OWNDC: u32 = 0x0020;
 
 pub const WS_OVERLAPPED: u32 = 0x00000000;
 pub const WS_CAPTION: u32 = 0x00C00000;
@@ -52,6 +56,12 @@ pub const WM_NCCREATE: u32 = 0x0081;
 pub const WM_CREATE: u32 = 0x0001;
 
 pub const GWLP_USERDATA: c_int = -21;
+
+pub const PFD_DOUBLEBUFFER: DWORD = 0x00000001;
+pub const PFD_DRAW_TO_WINDOW: DWORD = 0x00000004;
+pub const PFD_SUPPORT_OPENGL: DWORD = 0x00000020;
+pub const PFD_TYPE_RGBA: BYTE = 0;
+pub const PFD_MAIN_PLANE: BYTE = 0;
 
 pub const fn MAKEINTRESOURCEW(i: WORD) -> LPCSTR {
     i as ULONG_PTR as LPCSTR
@@ -129,6 +139,7 @@ unsafe_impl_default_zeroed!(MSG);
 
 pub type LPMSG = *mut MSG;
 
+#[repr(C)]
 pub struct CREATESTRUCTA {
     pub lpCreateParams: LPVOID,
     pub hInstance: HINSTANCE,
@@ -144,6 +155,37 @@ pub struct CREATESTRUCTA {
     pub dwExStyle: DWORD,
 }
 unsafe_impl_default_zeroed!(CREATESTRUCTA);
+
+#[repr(C)]
+pub struct PIXELFORMATDESCRIPTOR {
+    pub nSize: WORD,
+    pub nVersion: WORD,
+    pub dwFlags: DWORD,
+    pub iPixelType: BYTE,
+    pub cColorBits: BYTE,
+    pub cRedBits: BYTE,
+    pub cRedShift: BYTE,
+    pub cGreenBits: BYTE,
+    pub cGreenShift: BYTE,
+    pub cBlueBits: BYTE,
+    pub cBlueShift: BYTE,
+    pub cAlphaBits: BYTE,
+    pub cAlphaShift: BYTE,
+    pub cAccumBits: BYTE,
+    pub cAccumRedBits: BYTE,
+    pub cAccumGreenBits: BYTE,
+    pub cAccumBlueBits: BYTE,
+    pub cAccumAlphaBits: BYTE,
+    pub cDepthBits: BYTE,
+    pub cStencilBits: BYTE,
+    pub cAuxBuffers: BYTE,
+    pub iLayerType: BYTE,
+    pub bReserved: BYTE,
+    pub dwLayerMask: DWORD,
+    pub dwVisibleMask: DWORD,
+    pub dwDamageMask: DWORD,
+}
+unsafe_impl_default_zeroed!(PIXELFORMATDESCRIPTOR);
 
 #[link(name = "Kernel32")]
 extern "system" {
@@ -180,4 +222,12 @@ extern "system" {
     pub fn PostQuitMessage(nExitCode: c_int);
     pub fn GetWindowLongPtrA(hWnd: HWND, nIndex: c_int) -> LONG_PTR;
     pub fn SetWindowLongPtrA(hWnd: HWND, nIndex: c_int, dwNewLong: LONG_PTR) -> LONG_PTR;
+    pub fn GetDC(hWnd: HWND) -> HDC;
+}
+
+#[link(name = "Gdi32")]
+extern "system" {
+    pub fn SwapBuffers(hdc: HDC) -> BOOL;
+    pub fn ChoosePixelFormat(hdc: HDC, ppfd: *const PIXELFORMATDESCRIPTOR) -> c_int;
+    pub fn SetPixelFormat(hdc: HDC, format: c_int, ppfd: *const PIXELFORMATDESCRIPTOR) -> BOOL;
 }
