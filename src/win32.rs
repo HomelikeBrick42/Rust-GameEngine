@@ -10,6 +10,7 @@ mod internal {
     pub type HANDLE = *mut VOID;
     pub type UINT_PTR = *mut UINT;
     pub type LONG_PTR = isize;
+    pub type ULONG_PTR = usize;
     pub type LPCSTR = *const u8;
     pub type WORD = u16;
     pub type BOOL = i32;
@@ -45,6 +46,19 @@ mod internal {
     pub const SW_SHOW: c_int = 5;
 
     pub const PM_REMOVE: UINT = 0x0001;
+
+    pub const WM_CLOSE: UINT = 0x0010;
+    pub const WM_DESTROY: UINT = 0x0002;
+    pub const WM_NCCREATE: u32 = 0x0081;
+    pub const WM_CREATE: u32 = 0x0001;
+
+    pub const GWLP_USERDATA: c_int = -21;
+
+    pub const fn MAKEINTRESOURCEW(i: WORD) -> LPCSTR {
+        i as ULONG_PTR as LPCSTR
+    }
+
+    pub const IDC_ARROW: LPCSTR = MAKEINTRESOURCEW(32512);
 
     pub type WNDPROC = Option<
         unsafe extern "system" fn(
@@ -116,6 +130,22 @@ mod internal {
 
     pub type LPMSG = *mut MSG;
 
+    pub struct CREATESTRUCTA {
+        pub lpCreateParams: LPVOID,
+        pub hInstance: HINSTANCE,
+        pub hMenu: HMENU,
+        pub hwndParent: HWND,
+        pub cy: c_int,
+        pub cx: c_int,
+        pub y: c_int,
+        pub x: c_int,
+        pub style: LONG,
+        pub lpszName: LPCSTR,
+        pub lpszClass: LPCSTR,
+        pub dwExStyle: DWORD,
+    }
+    unsafe_impl_default_zeroed!(CREATESTRUCTA);
+
     #[link(name = "Kernel32")]
     extern "system" {
         pub fn GetModuleHandleA(lpModuleName: LPCSTR) -> HMODULE;
@@ -148,5 +178,8 @@ mod internal {
         pub fn TranslateMessage(lpMsg: *const MSG) -> BOOL;
         pub fn DispatchMessageA(lpMsg: *const MSG) -> LRESULT;
         pub fn LoadCursorA(hInstance: HINSTANCE, lpCursorName: LPCSTR) -> HCURSOR;
+        pub fn PostQuitMessage(nExitCode: c_int);
+        pub fn GetWindowLongPtrA(hWnd: HWND, nIndex: c_int) -> LONG_PTR;
+        pub fn SetWindowLongPtrA(hWnd: HWND, nIndex: c_int, dwNewLong: LONG_PTR) -> LONG_PTR;
     }
 }

@@ -11,7 +11,20 @@ mod win32;
 
 #[allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 unsafe extern "system" fn window_message_callback(hWnd: HWND, uMsg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT {
-    unimplemented!()
+    if uMsg == WM_NCCREATE {
+        let create_struct = lParam as LPVOID as *mut CREATESTRUCTA;
+        SetWindowLongPtrA(hWnd, GWLP_USERDATA, (*create_struct).lpCreateParams as LONG_PTR);
+        DefWindowProcA(hWnd, uMsg, wParam, lParam)
+    } else {
+        match uMsg {
+            WM_CLOSE | WM_DESTROY => {
+                let running = GetWindowLongPtrA(hWnd, GWLP_USERDATA) as LPVOID as *mut bool;
+                *running = false;
+                0
+            }
+            _ => DefWindowProcA(hWnd, uMsg, wParam, lParam),
+        }
+    }
 }
 
 fn main() {
@@ -29,9 +42,9 @@ fn main() {
 
         window_class.cbSize = size_of_val(&window_class) as UINT;
         window_class.hInstance = instance;
-        window_class.lpfnWndProc = Some(DefWindowProcA);
+        window_class.lpfnWndProc = Some(window_message_callback);
         window_class.lpszClassName = WINDOW_CLASS_NAME.as_ptr();
-        // TODO: window_class.hCursor = LoadCursorA(null_mut(), IDC_ARROW);
+        window_class.hCursor = LoadCursorA(null_mut(), IDC_ARROW);
 
         let result = RegisterClassExA(&window_class);
         if result == 0 {
@@ -39,6 +52,8 @@ fn main() {
             exit(1);
         }
     }
+
+    let mut running = true;
 
     let window = unsafe {
         let mut rect = RECT::default();
@@ -67,7 +82,7 @@ fn main() {
             null_mut(),
             null_mut(),
             instance,
-            null_mut(),
+            &mut running as *mut bool as LPVOID,
         )
     };
     if window.is_null() {
@@ -77,7 +92,7 @@ fn main() {
 
     unsafe { ShowWindow(window, SW_SHOW) };
 
-    loop {
+    while running {
         unsafe {
             let mut message = MSG::default();
             while PeekMessageA(&mut message, window, 0, 0, PM_REMOVE) != 0 {
