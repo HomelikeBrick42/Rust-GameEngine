@@ -12,14 +12,16 @@ mod window;
 mod renderer;
 mod opengl_renderer;
 
-fn main() {
-    let window = Arc::new(RefCell::new(Window::new(640, 480, "Test Window").unwrap()));
-    let renderer = OpenGLRenderer::new(window.clone()).unwrap();
+fn main() -> Result<(), String> {
+    let window = Arc::new(RefCell::new(Window::new(640, 480, "Test Window")?));
+    let renderer = OpenGLRenderer::new(window.clone())?;
 
     window.borrow_mut().show();
     while !window.borrow_mut().should_close() {
         window.borrow_mut().poll_messages();
-        renderer.borrow_mut().present().unwrap();
+        renderer.borrow_mut().present()?;
     }
     window.borrow_mut().hide();
+
+    Ok(())
 }

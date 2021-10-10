@@ -95,4 +95,8 @@ impl Renderer for OpenGLRenderer {
             }
         }
     }
+
+    fn get_window(&self) -> Arc<RefCell<Window>> {
+        self.window.clone()
+    }
 }
